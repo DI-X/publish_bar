@@ -6,11 +6,10 @@ from PySide6.QtWidgets import (
     QSlider, QLabel, QPushButton, QLineEdit, QFileDialog
 )
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QSpacerItem, QSizePolicy
-import lcm
-from lcm_msg.lcm_std import FloatMultiArray
 import json, sys
+import rospy
+from std_msgs.msg import Float32MultiArray
 
 class slideBar(QWidget):
     def __init__(self, name="Gain", min_val=0.0, max_val=100.0, value=50.0, callback=None):
@@ -113,14 +112,21 @@ class publishBar(QWidget):
         self.sliders = []
         self.setLayout(self.layout)
 
-        # --- Lcm init ----
-        self.lc = lcm.LCM()
-        self.lcm_msg = FloatMultiArray()
+        # --- Ros init ----
+        rospy.init_node('publish_bar', anonymous=True)
+        self.ros_topic_name = self.topic_edit.text()
+        self.pub = rospy.Publisher(self.ros_topic_name, Float32MultiArray, queue_size=1)
+        self.ros_msg = Float32MultiArray()
 
     def add_slider(self):
         slider = slideBar(f"Gain {len(self.sliders) + 1}", callback=self.publish)
         self.sliders.append(slider)
         self.layout.insertWidget(len(self.sliders), slider)
+
+    def update_publisher(self):
+        if self.ros_topic_name != self.topic_edit.text():
+            self.ros_topic_name = self.topic_edit.text()
+            self.pub = rospy.Publisher(self.ros_topic_name, Float32MultiArray, queue_size=1)
 
     def publish(self):
         topic = self.topic_edit.text()
@@ -128,11 +134,9 @@ class publishBar(QWidget):
         name = [s.name_label.text() for s in self.sliders]
 
         # --- publish lcm msg ---
-        self.lcm_msg.data.clear()
-        for i in range(len(values)):
-            self.lcm_msg.data.append(values[i])
-        self.lcm_msg.size = len(self.lcm_msg.data)
-        self.lc.publish(topic, self.lcm_msg.encode())
+        self.ros_msg.data = values
+        self.update_publisher()
+        self.pub.publish(self.ros_msg)
 
     def save_config(self):
         config = {

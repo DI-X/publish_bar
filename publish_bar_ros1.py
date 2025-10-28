@@ -77,7 +77,7 @@ class slideBar(QWidget):
 class publishBar(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Publish Bar")
+        self.setWindowTitle("Publish Bar ROS")
         self.layout = QVBoxLayout()
 
         # --- Topic name horizontal layout ---

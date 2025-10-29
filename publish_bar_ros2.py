@@ -139,9 +139,14 @@ class publishBar(QWidget):
     def publish(self):
         topic = self.topic_edit.text()
         values = [s.get_value() for s in self.sliders]
-        name = [s.name_label.text() for s in self.sliders]
+        value_name = [s.name_label.text() for s in self.sliders]
 
-        # --- publish lcm msg ---
+        '''
+         topic: topic name you can modify at the top of GUI. Dynamically reflect the topic name.
+         values: list of values to publish. The valuse you adjust using sliders
+         Value_name: name of each values shown left side of GUI, that you can modify dynamically in GUI
+         '''
+        # --- publish ros2 msg ---
         self.ros_node.update_topic(self.topic_edit.text())
         self.ros_node.publish(values)
 

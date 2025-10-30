@@ -309,59 +309,97 @@ class DynamicContent(QWidget):
 
         # layout
         main = QVBoxLayout(self)
+        main.setSpacing(4)
+        main.setContentsMargins(10, 8, 10, 8)
 
-        # top row: topic + type
+        # --- Top Row: Topic + Type ---
         top = QHBoxLayout()
+        top.setSpacing(6)
+        top.setContentsMargins(0, 0, 0, 0)
+        # top.setAlignment(Qt.AlignLeft)
+
         top.addWidget(QLabel("Topic:"))
         self.topic_edit = QLineEdit("robot/publish_bar")
+        self.topic_edit.setFixedWidth(320)
         top.addWidget(self.topic_edit)
 
         top.addWidget(QLabel("Message Type:"))
         self.type_box = QComboBox()
         self.type_box.addItems(["Float32MultiArray", "Twist", "Vec3", "Pose", "JointState"])
         self.type_box.currentTextChanged.connect(self._on_type_changed)
+        self.type_box.setFixedWidth(180)
         top.addWidget(self.type_box)
-        main.addLayout(top)
 
-        # mode / freq row (per-tab)
+        top.addStretch(1)
+        main.addLayout(top, stretch=0)
+
+        # --- Publish Mode Row ---
         mode_row = QHBoxLayout()
+        mode_row.setSpacing(6)
+        mode_row.setContentsMargins(0, 0, 0, 0)
+        # mode_row.setAlignment(Qt.AlignLeft)
+
         mode_row.addWidget(QLabel("Publish Mode:"))
         self.mode_box = QComboBox()
         self.mode_box.addItems(["As Updates", "Continuous", "Once"])
         self.mode_box.currentTextChanged.connect(self.on_mode_changed)
-        self.mode_box.setMaximumWidth(180)
+        self.mode_box.setFixedWidth(150)
         mode_row.addWidget(self.mode_box)
 
-        self.freq_min_edit = QLineEdit("1"); self.freq_min_edit.setFixedWidth(50)
-        self.freq_max_edit = QLineEdit("100"); self.freq_max_edit.setFixedWidth(50)
-        self.freq_slider = QSlider(Qt.Horizontal); self.freq_slider.setRange(1, 100); self.freq_slider.setValue(10)
-        self.freq_slider.setFixedWidth(150); self.freq_slider.setTickPosition(QSlider.TicksBelow); self.freq_slider.setTickInterval(1)
+        self.freq_min_edit = QLineEdit("1");
+        self.freq_min_edit.setFixedWidth(50)
+        self.freq_max_edit = QLineEdit("100");
+        self.freq_max_edit.setFixedWidth(50)
+        self.freq_slider = QSlider(Qt.Horizontal)
+        self.freq_slider.setRange(1, 100)
+        self.freq_slider.setValue(10)
+        self.freq_slider.setFixedWidth(250)
+        self.freq_slider.setTickPosition(QSlider.TicksBelow)
+        self.freq_slider.setTickInterval(1)
         self.freq_value_label = QLabel("10 Hz")
 
         self.freq_slider.valueChanged.connect(self.on_freq_slider_changed)
         self.freq_min_edit.editingFinished.connect(self.on_freq_minmax_changed)
         self.freq_max_edit.editingFinished.connect(self.on_freq_minmax_changed)
 
-        mode_row.addWidget(QLabel("Min:")); mode_row.addWidget(self.freq_min_edit)
-        mode_row.addWidget(QLabel("Max:")); mode_row.addWidget(self.freq_max_edit)
-        mode_row.addWidget(self.freq_slider); mode_row.addWidget(self.freq_value_label)
-        mode_row.addStretch()
-        main.addLayout(mode_row)
+        mode_row.addWidget(QLabel("Min:"));
+        mode_row.addWidget(self.freq_min_edit)
+        mode_row.addWidget(QLabel("Max:"));
+        mode_row.addWidget(self.freq_max_edit)
+        mode_row.addWidget(self.freq_slider)
+        mode_row.addWidget(self.freq_value_label)
+        mode_row.addStretch(1)
+        main.addLayout(mode_row, stretch=0)
 
-        # buttons row for this tab
+        # --- Buttons Row ---
         btn_row = QHBoxLayout()
+        btn_row.setSpacing(6)
+        btn_row.setContentsMargins(0, 0, 0, 0)
+        btn_row.setAlignment(Qt.AlignLeft)
+
         self.add_slider_button = QPushButton("Add Slider")
+        self.add_slider_button.setFixedWidth(100)
         self.add_slider_button.clicked.connect(self.add_slider)
+
         self.publish_button = QPushButton("Publish")
+        self.publish_button.setFixedWidth(100)
         self.publish_button.clicked.connect(self.manual_publish)
+
         btn_row.addWidget(self.add_slider_button)
         btn_row.addWidget(self.publish_button)
-        btn_row.addStretch()
-        main.addLayout(btn_row)
+        btn_row.addStretch(1)
+        main.addLayout(btn_row, stretch=0)
 
-        # dynamic area for type-specific widget
+        # --- Dynamic Area ---
+        ## no spacing no cllaps for groups
         self.dynamic_area = QVBoxLayout()
-        main.addLayout(self.dynamic_area)
+        self.dynamic_area.setContentsMargins(0, 0, 0, 0)
+        self.dynamic_area.setSpacing(4)
+        main.addLayout(self.dynamic_area, stretch=1)
+
+        ## callaps and huge space
+        # self.dynamic_area = QVBoxLayout()
+        # main.addLayout(self.dynamic_area)
 
         # internal references to type widgets (created in switch)
         self.type_widget = None

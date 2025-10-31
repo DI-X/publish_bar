@@ -1,0 +1,11 @@
+package lcm_std;
+
+struct JointState
+{
+    int16_t  size;
+    string   name[size];
+    float   position[size];
+    float   velocity[size];
+    float   effort[size];
+}
+

@@ -13,7 +13,7 @@ class TabbedMain(QWidget):
     def __init__(self):
         super().__init__()
         rospy.init_node('publish_bar', anonymous=True)
-        self.setWindowTitle("Tabbed Publisher GUI")
+        self.setWindowTitle("Publish Bar ROS1")
         self.resize(1000, 700)
 
         layout = QVBoxLayout(self)

@@ -1,8 +1,4 @@
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import (
-    QHBoxLayout, QLabel, QPushButton,
-    QLineEdit, QComboBox, QSlider,
-)
+
 from components.scripts.msgWidgets import *
 from components.scripts.ros2.ros2Helper import ROS2Publisher
 from components.scripts.dynamicContentBase import DynamicContentBase
@@ -11,9 +7,6 @@ class DynamicContentRos2(DynamicContentBase):
     def __init__(self, topic_name="robot/publish_bar", ros_node=None):
         self.ros_node = ROS2Publisher(topic_name, ros_node)
         super().__init__(topic_name)
-        # initialize UI
-        self.show_freq_controls(False)
-        self._on_type_changed(self.type_box.currentText())
 
     # ---------------- type switching ----------------
     def _on_type_changed(self, t):
@@ -38,18 +31,24 @@ class DynamicContentRos2(DynamicContentBase):
         # create appropriate widget
         if t == "Float32MultiArray":
             self.type_widget = FloatArrayWidget(self.slider_changed)
+            self.add_slider_button.setEnabled(True)
         elif t == "Twist":
             self.type_widget = TwistWidget(self.slider_changed)
+            self.add_slider_button.setEnabled(False)
         elif t == "Vec3":
             self.type_widget = Vec3Widget(self.slider_changed)
+            self.add_slider_button.setEnabled(False)
         elif t == "Pose":
             self.type_widget = PoseWidget(self.slider_changed)
+            self.add_slider_button.setEnabled(False)
         elif t == "JointState":
             self.type_widget = JointStateWidget(self.slider_changed)
+            self.add_slider_button.setEnabled(True)
         else:
             self.type_widget = FloatArrayWidget(self.slider_changed)
-        self.ros_node.update_publisher(topic, self.msg_type)
+            self.add_slider_button.setEnabled(True)
 
+        self.ros_node.update_publisher(topic, self.msg_type)
         # add to layout
         if self.type_widget:
             self.dynamic_area.addWidget(self.type_widget)

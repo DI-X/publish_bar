@@ -37,21 +37,27 @@ class DynamicContentLcm(DynamicContentBase):
         # create appropriate widget
         if t == "Float32MultiArray":
             self.type_widget = FloatArrayWidget(self.slider_changed)
+            self.add_slider_button.setEnabled(True)
             self.lcm_msg = Float32MultiArray()
         elif t == "Twist":
             self.type_widget = TwistWidget(self.slider_changed)
+            self.add_slider_button.setEnabled(False)
             self.lcm_msg = Twist()
         elif t == "Vec3":
             self.type_widget = Vec3Widget(self.slider_changed)
+            self.add_slider_button.setEnabled(False)
             self.lcm_msg = Vector3()
         elif t == "Pose":
             self.type_widget = PoseWidget(self.slider_changed)
+            self.add_slider_button.setEnabled(False)
             self.lcm_msg = Pose()
         elif t == "JointState":
             self.type_widget = JointStateWidget(self.slider_changed)
+            self.add_slider_button.setEnabled(True)
             self.lcm_msg = JointState()
         else:
             self.type_widget = FloatArrayWidget(self.slider_changed)
+            self.add_slider_button.setEnabled(True)
             self.lcm_msg = Float32MultiArray()
         # add to layout
         if self.type_widget:

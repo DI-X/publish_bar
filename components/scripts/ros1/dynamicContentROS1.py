@@ -1,93 +1,12 @@
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import (
-    QHBoxLayout, QLabel, QPushButton,
-    QLineEdit, QComboBox, QSlider,
-)
+
 from components.scripts.msgWidgets import *
 from components.scripts.ros1.ros1Helper import ROS1Publisher
 from components.scripts.dynamicContentBase import DynamicContentBase
 
 class DynamicContentRos1(DynamicContentBase):
     def __init__(self, topic_name="robot/publish_bar"):
-        super().__init__(topic_name)
-        # each tab has its own LCM and message object (you may want shared LCM; using per-tab as before)
-        # self.msg_type = "Float32MultiArray"
-        #
-        # # layout
-        # main = QVBoxLayout(self)
-        #
-        # # top row: topic + type
-        # top = QHBoxLayout()
-        # top.addWidget(QLabel("Topic:"))
-        # self.topic_edit = QLineEdit(topic_name)
-        # top.addWidget(self.topic_edit)
-        #
-        # top.addWidget(QLabel("Message Type:"))
-        # self.type_box = QComboBox()
-        # self.type_box.addItems(["Float32MultiArray", "Twist", "Vec3", "Pose", "JointState"])
-        # self.type_box.currentTextChanged.connect(self._on_type_changed)
-        # top.addWidget(self.type_box)
-        # main.addLayout(top)
-        #
-        # # mode / freq row (per-tab)
-        # mode_row = QHBoxLayout()
-        # mode_row.addWidget(QLabel("Publish Mode:"))
-        # self.mode_box = QComboBox()
-        # self.mode_box.addItems(["As Updates", "Continuous", "Once"])
-        # self.mode_box.currentTextChanged.connect(self.on_mode_changed)
-        # self.mode_box.setMaximumWidth(180)
-        # mode_row.addWidget(self.mode_box)
-        #
-        # self.freq_min_edit = QLineEdit("1"); self.freq_min_edit.setFixedWidth(50)
-        # self.freq_max_edit = QLineEdit("100"); self.freq_max_edit.setFixedWidth(50)
-        # self.freq_slider = QSlider(Qt.Horizontal); self.freq_slider.setRange(1, 100); self.freq_slider.setValue(10)
-        # self.freq_slider.setFixedWidth(150); self.freq_slider.setTickPosition(QSlider.TicksBelow); self.freq_slider.setTickInterval(1)
-        # self.freq_value_label = QLabel("10 Hz")
-        #
-        # self.freq_slider.valueChanged.connect(self.on_freq_slider_changed)
-        # self.freq_min_edit.editingFinished.connect(self.on_freq_minmax_changed)
-        # self.freq_max_edit.editingFinished.connect(self.on_freq_minmax_changed)
-        #
-        # mode_row.addWidget(QLabel("Min:")); mode_row.addWidget(self.freq_min_edit)
-        # mode_row.addWidget(QLabel("Max:")); mode_row.addWidget(self.freq_max_edit)
-        # mode_row.addWidget(self.freq_slider); mode_row.addWidget(self.freq_value_label)
-        # mode_row.addStretch()
-        # main.addLayout(mode_row)
-        #
-        # # buttons row for this tab
-        # btn_row = QHBoxLayout()
-        # self.add_slider_button = QPushButton("Add Slider")
-        # self.add_slider_button.clicked.connect(self.add_slider)
-        # self.publish_button = QPushButton("Publish")
-        # self.publish_button.clicked.connect(self.manual_publish)
-        # btn_row.addWidget(self.add_slider_button)
-        # btn_row.addWidget(self.publish_button)
-        # btn_row.addStretch()
-        # main.addLayout(btn_row)
-        #
-        # # dynamic area for type-specific widget
-        # # self.dynamic_area = QVBoxLayout()
-        # # main.addLayout(self.dynamic_area)
-        #
-        # # --- Dynamic Area ---
-        # ## no spacing no cllaps for groups
-        # self.dynamic_area = QVBoxLayout()
-        # self.dynamic_area.setContentsMargins(0, 0, 0, 0)
-        # self.dynamic_area.setSpacing(4)
-        # main.addLayout(self.dynamic_area, stretch=1)
-        #
-        # # internal references to type widgets (created in switch)
-        # self.type_widget = None
-        #
-        # # timer per-tab for Continuous mode
-        # self.publish_timer = QTimer()
-        # self.publish_timer.timeout.connect(self.publish)
-        # self.publish_timer.setInterval(int(1000 / 10))  # default 10 Hz
         self.ros_node = ROS1Publisher(topic_name)
-
-        # # initialize UI
-        # self.show_freq_controls(False)
-        # self._on_type_changed(self.type_box.currentText())
+        super().__init__(topic_name)
 
     # ---------------- type switching ----------------
     def _on_type_changed(self, t):
@@ -112,18 +31,24 @@ class DynamicContentRos1(DynamicContentBase):
         # create appropriate widget
         if t == "Float32MultiArray":
             self.type_widget = FloatArrayWidget(self.slider_changed)
+            self.add_slider_button.setEnabled(True)
         elif t == "Twist":
             self.type_widget = TwistWidget(self.slider_changed)
+            self.add_slider_button.setEnabled(False)
         elif t == "Vec3":
             self.type_widget = Vec3Widget(self.slider_changed)
+            self.add_slider_button.setEnabled(False)
         elif t == "Pose":
             self.type_widget = PoseWidget(self.slider_changed)
+            self.add_slider_button.setEnabled(False)
         elif t == "JointState":
             self.type_widget = JointStateWidget(self.slider_changed)
+            self.add_slider_button.setEnabled(True)
         else:
             self.type_widget = FloatArrayWidget(self.slider_changed)
-        self.ros_node.update_publisher(topic, t)
+            self.add_slider_button.setEnabled(True)
 
+        self.ros_node.update_publisher(topic, t)
         # add to layout
         if self.type_widget:
             self.dynamic_area.addWidget(self.type_widget)

@@ -13,7 +13,7 @@ import itertools
 class TabbedMain(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Tabbed Publisher GUI")
+        self.setWindowTitle("Publish Bar ROS2")
         self.resize(1000, 700)
 
         layout = QVBoxLayout(self)

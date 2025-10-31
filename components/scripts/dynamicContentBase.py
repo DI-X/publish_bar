@@ -39,7 +39,7 @@ class DynamicContentBase(QWidget):
         self.freq_min_edit = QLineEdit("1"); self.freq_min_edit.setFixedWidth(50)
         self.freq_max_edit = QLineEdit("100"); self.freq_max_edit.setFixedWidth(50)
         self.freq_slider = QSlider(Qt.Horizontal); self.freq_slider.setRange(1, 100); self.freq_slider.setValue(10)
-        self.freq_slider.setFixedWidth(150); self.freq_slider.setTickPosition(QSlider.TicksBelow); self.freq_slider.setTickInterval(1)
+        self.freq_slider.setFixedWidth(210); self.freq_slider.setTickPosition(QSlider.TicksBelow); self.freq_slider.setTickInterval(1)
         self.freq_value_label = QLabel("10 Hz")
 
         self.freq_slider.valueChanged.connect(self.on_freq_slider_changed)
@@ -62,10 +62,6 @@ class DynamicContentBase(QWidget):
         btn_row.addWidget(self.publish_button)
         btn_row.addStretch()
         main.addLayout(btn_row)
-
-        # dynamic area for type-specific widget
-        # self.dynamic_area = QVBoxLayout()
-        # main.addLayout(self.dynamic_area)
 
         # --- Dynamic Area ---
         ## no spacing no cllaps for groups
@@ -108,17 +104,23 @@ class DynamicContentBase(QWidget):
         # create appropriate widget
         if t == "Float32MultiArray":
             self.type_widget = FloatArrayWidget(self.slider_changed)
+            self.add_slider_button.setEnabled(True)
         elif t == "Twist":
             self.type_widget = TwistWidget(self.slider_changed)
+            self.add_slider_button.setEnabled(False)
         elif t == "Vec3":
             self.type_widget = Vec3Widget(self.slider_changed)
+            self.add_slider_button.setEnabled(False)
         elif t == "Pose":
             self.type_widget = PoseWidget(self.slider_changed)
+            self.add_slider_button.setEnabled(False)
         elif t == "JointState":
             self.type_widget = JointStateWidget(self.slider_changed)
+            self.add_slider_button.setEnabled(True)
         else:
             self.type_widget = FloatArrayWidget(self.slider_changed)
-        # add to layout
+            self.add_slider_button.setEnabled(True)
+            # add to layout
         if self.type_widget:
             self.dynamic_area.addWidget(self.type_widget)
 

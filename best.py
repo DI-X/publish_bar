@@ -158,8 +158,10 @@ class SliderGroup(QGroupBox):
         self.toggled.connect(self._on_toggled)
 
     def _on_toggled(self, checked):
-        for s in self.sliders:
-            s.setVisible(checked)
+        # for s in self.sliders:
+        #     s.setVisible(checked)
+
+        self.setVisible(checked)
 
     def add_slider(self, name="Value", min_val=-10.0, max_val=10.0, value=0.0, name_changed_callback=None):
         # name_changed_callback overrides group default if provided
@@ -360,8 +362,15 @@ class DynamicContent(QWidget):
         main.addLayout(btn_row)
 
         # dynamic area for type-specific widget
+        # self.dynamic_area = QVBoxLayout()
+        # main.addLayout(self.dynamic_area)
+
+        # --- Dynamic Area ---
+        ## no spacing no cllaps for groups
         self.dynamic_area = QVBoxLayout()
-        main.addLayout(self.dynamic_area)
+        self.dynamic_area.setContentsMargins(0, 0, 0, 0)
+        self.dynamic_area.setSpacing(4)
+        main.addLayout(self.dynamic_area, stretch=1)
 
         # internal references to type widgets (created in switch)
         self.type_widget = None

@@ -149,34 +149,74 @@ class SliderGroup(QGroupBox):
         self.setChecked(True)
         self.slider_callback = slider_callback
         self.name_changed_callback = name_changed_callback
-        self.container = QVBoxLayout()
+
+        # Outer layout of the group (this holds the title + content widget)
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(6, 6, 6, 6)
+        outer_layout.setSpacing(4)
+
+        # Content widget that holds the sliders
+        self.content_widget = QWidget()
+        # Important: make it Fixed vertically so maximumHeight controls it
+        self.content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        self.container = QVBoxLayout(self.content_widget)
+        self.container.setContentsMargins(4, 2, 4, 2)
+        self.container.setSpacing(6)
+
+        outer_layout.addWidget(self.content_widget)
+
+        # list of slideBar children
         self.sliders = []
         if labels:
             for lbl in labels:
                 self.add_slider(lbl)
-        self.setLayout(self.container)
+
+        # store a "no cap" sentinel value to restore later
+        self._no_max = 16777215
+
+        # connect toggle
         self.toggled.connect(self._on_toggled)
 
     def _on_toggled(self, checked):
-        for s in self.sliders:
-            s.setVisible(checked)
+        if checked:
+            # allow the content to expand again
+            self.content_widget.setMaximumHeight(self._no_max)
+            self.content_widget.setVisible(True)
+        else:
+            # force its height to zero (collapses the space)
+            # keep it visible so the title/checkbox remain visible (optional)
+            self.content_widget.setMaximumHeight(10)
+            # it's safe to keep Visible True; maximumHeight does the collapsing.
+            self.content_widget.setVisible(False)
+
+        # force geometry/layout recompute up the chain
+        self.content_widget.updateGeometry()
+        self.layout().activate()
+        parent = self.parentWidget()
+        while parent:
+            if parent.layout():
+                parent.layout().activate()
+            parent.updateGeometry()
+            parent = parent.parentWidget()
 
     def add_slider(self, name="Value", min_val=-10.0, max_val=10.0, value=0.0, name_changed_callback=None):
-        # name_changed_callback overrides group default if provided
         callback = name_changed_callback if name_changed_callback is not None else self.name_changed_callback
         s = slideBar(name, min_val, max_val, value, callback=self.slider_callback, name_changed_callback=callback)
         self.container.addWidget(s)
         self.sliders.append(s)
+        # when adding new sliders, clear any previously-applied zero-max so they can show
+        if self.isChecked():
+            self.content_widget.setMaximumHeight(self._no_max)
         return s
 
     def clear(self):
-        for s in self.sliders:
+        for s in list(self.sliders):
             try:
                 s.deleteLater()
             except Exception:
                 pass
         self.sliders.clear()
-
 
 # -------------------------
 # Type-specific widgets
@@ -309,86 +349,59 @@ class DynamicContent(QWidget):
 
         # layout
         main = QVBoxLayout(self)
-        main.setSpacing(4)
-        main.setContentsMargins(10, 8, 10, 8)
 
-        # --- Top Row: Topic + Type ---
+        # top row: topic + type
         top = QHBoxLayout()
-        top.setSpacing(6)
-        top.setContentsMargins(0, 0, 0, 0)
-        # top.setAlignment(Qt.AlignLeft)
-
         top.addWidget(QLabel("Topic:"))
         self.topic_edit = QLineEdit("robot/publish_bar")
-        self.topic_edit.setFixedWidth(320)
         top.addWidget(self.topic_edit)
 
         top.addWidget(QLabel("Message Type:"))
         self.type_box = QComboBox()
         self.type_box.addItems(["Float32MultiArray", "Twist", "Vec3", "Pose", "JointState"])
         self.type_box.currentTextChanged.connect(self._on_type_changed)
-        self.type_box.setFixedWidth(180)
         top.addWidget(self.type_box)
+        main.addLayout(top)
 
-        top.addStretch(1)
-        main.addLayout(top, stretch=0)
-
-        # --- Publish Mode Row ---
+        # mode / freq row (per-tab)
         mode_row = QHBoxLayout()
-        mode_row.setSpacing(6)
-        mode_row.setContentsMargins(0, 0, 0, 0)
-        # mode_row.setAlignment(Qt.AlignLeft)
-
         mode_row.addWidget(QLabel("Publish Mode:"))
         self.mode_box = QComboBox()
         self.mode_box.addItems(["As Updates", "Continuous", "Once"])
         self.mode_box.currentTextChanged.connect(self.on_mode_changed)
-        self.mode_box.setFixedWidth(150)
+        self.mode_box.setMaximumWidth(180)
         mode_row.addWidget(self.mode_box)
 
-        self.freq_min_edit = QLineEdit("1");
-        self.freq_min_edit.setFixedWidth(50)
-        self.freq_max_edit = QLineEdit("100");
-        self.freq_max_edit.setFixedWidth(50)
-        self.freq_slider = QSlider(Qt.Horizontal)
-        self.freq_slider.setRange(1, 100)
-        self.freq_slider.setValue(10)
-        self.freq_slider.setFixedWidth(250)
-        self.freq_slider.setTickPosition(QSlider.TicksBelow)
-        self.freq_slider.setTickInterval(1)
+        self.freq_min_edit = QLineEdit("1"); self.freq_min_edit.setFixedWidth(50)
+        self.freq_max_edit = QLineEdit("100"); self.freq_max_edit.setFixedWidth(50)
+        self.freq_slider = QSlider(Qt.Horizontal); self.freq_slider.setRange(1, 100); self.freq_slider.setValue(10)
+        self.freq_slider.setFixedWidth(150); self.freq_slider.setTickPosition(QSlider.TicksBelow); self.freq_slider.setTickInterval(1)
         self.freq_value_label = QLabel("10 Hz")
 
         self.freq_slider.valueChanged.connect(self.on_freq_slider_changed)
         self.freq_min_edit.editingFinished.connect(self.on_freq_minmax_changed)
         self.freq_max_edit.editingFinished.connect(self.on_freq_minmax_changed)
 
-        mode_row.addWidget(QLabel("Min:"));
-        mode_row.addWidget(self.freq_min_edit)
-        mode_row.addWidget(QLabel("Max:"));
-        mode_row.addWidget(self.freq_max_edit)
-        mode_row.addWidget(self.freq_slider)
-        mode_row.addWidget(self.freq_value_label)
-        mode_row.addStretch(1)
-        main.addLayout(mode_row, stretch=0)
+        mode_row.addWidget(QLabel("Min:")); mode_row.addWidget(self.freq_min_edit)
+        mode_row.addWidget(QLabel("Max:")); mode_row.addWidget(self.freq_max_edit)
+        mode_row.addWidget(self.freq_slider); mode_row.addWidget(self.freq_value_label)
+        mode_row.addStretch()
+        main.addLayout(mode_row)
 
-        # --- Buttons Row ---
+        # buttons row for this tab
         btn_row = QHBoxLayout()
-        btn_row.setSpacing(6)
-        btn_row.setContentsMargins(0, 0, 0, 0)
-        btn_row.setAlignment(Qt.AlignLeft)
-
         self.add_slider_button = QPushButton("Add Slider")
-        self.add_slider_button.setFixedWidth(100)
         self.add_slider_button.clicked.connect(self.add_slider)
-
         self.publish_button = QPushButton("Publish")
-        self.publish_button.setFixedWidth(100)
         self.publish_button.clicked.connect(self.manual_publish)
-
         btn_row.addWidget(self.add_slider_button)
         btn_row.addWidget(self.publish_button)
-        btn_row.addStretch(1)
-        main.addLayout(btn_row, stretch=0)
+        btn_row.addStretch()
+        main.addLayout(btn_row)
+
+        # dynamic area for type-specific widget
+        # self.dynamic_area = QVBoxLayout()
+        # main.addLayout(self.dynamic_area)
 
         # --- Dynamic Area ---
         ## no spacing no cllaps for groups
@@ -396,10 +409,6 @@ class DynamicContent(QWidget):
         self.dynamic_area.setContentsMargins(0, 0, 0, 0)
         self.dynamic_area.setSpacing(4)
         main.addLayout(self.dynamic_area, stretch=1)
-
-        ## callaps and huge space
-        # self.dynamic_area = QVBoxLayout()
-        # main.addLayout(self.dynamic_area)
 
         # internal references to type widgets (created in switch)
         self.type_widget = None

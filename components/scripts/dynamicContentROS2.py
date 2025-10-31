@@ -4,16 +4,81 @@ from PySide6.QtWidgets import (
     QHBoxLayout, QLabel, QPushButton,
     QLineEdit, QComboBox, QSlider,
 )
-from components.lcm_msg.lcm_std import Float32MultiArray, Twist, Pose, JointState, Vector3
+from std_msgs.msg import Float32MultiArray
+from geometry_msgs.msg import Pose, Twist, Vector3
+from sensor_msgs.msg import JointState
 from components.scripts.msgWidgets import *
+import rclpy
+from rclpy.node import Node
 
-class DynamicContentLcm(QWidget):
-    def __init__(self):
+class ROSPublisher(Node):
+    def __init__(self, topic_name="robot/publish_bar"):
+        super().__init__("publish_bar")
+        self.topic_name = topic_name
+        self.pub = self.create_publisher(Float32MultiArray, self.topic_name, 1)
+        self.ros_msg = Float32MultiArray()
+
+    def update_topic(self, topic_name):
+        if self.topic_name != topic_name:
+            self.topic_name = topic_name
+            self.pub = self.create_publisher(Float32MultiArray, self.topic_name, 1)
+
+    def update_msg_Type(self, msg_type):
+        self.destroy_publisher(self.pub)
+        if msg_type == "Float32MultiArray":
+            self.ros_msg = Float32MultiArray()
+            self.pub = self.create_publisher(Float32MultiArray, self.topic_name, 1)
+        elif msg_type == "Twist":
+            self.ros_msg = Twist()
+            self.pub = self.create_publisher(Twist, self.topic_name, 1)
+        elif msg_type == "Vec3":
+            self.ros_msg = Vector3()
+            self.pub = self.create_publisher(Vector3, self.topic_name, 1)
+        elif msg_type == "Pose":
+            self.ros_msg = Pose()
+            self.pub = self.create_publisher(Pose, self.topic_name, 1)
+        elif msg_type == "JointState":
+            self.ros_msg = JointState()
+            self.pub = self.create_publisher(JointState, self.topic_name, 1)
+        else:
+            raise Exception(f"Unknown ROS message type: {msg_type}")
+
+    def publish(self, val:dict):
+        if isinstance(self.ros_msg, Float32MultiArray):
+            self.ros_msg.data = val["data"]
+        elif isinstance(self.ros_msg, Twist):
+            self.ros_msg.linear.x = val["lin"][0]
+            self.ros_msg.linear.y = val["lin"][1]
+            self.ros_msg.linear.z = val["lin"][2]
+            self.ros_msg.angular.x = val["ang"][0]
+            self.ros_msg.angular.y = val["ang"][1]
+            self.ros_msg.angular.z = val["ang"][2]
+        elif isinstance(self.ros_msg, Vector3):
+            self.ros_msg.x = val["vals"][0]
+            self.ros_msg.y = val["vals"][1]
+            self.ros_msg.z = val["vals"][2]
+        elif isinstance(self.ros_msg, Pose):
+            self.ros_msg.orientation.w = val["ori"][0]
+            self.ros_msg.orientation.x = val["ori"][1]
+            self.ros_msg.orientation.y = val["ori"][2]
+            self.ros_msg.orientation.z = val["ori"][3]
+
+            self.ros_msg.position.x = val["pos"][0]
+            self.ros_msg.position.y = val["pos"][1]
+            self.ros_msg.position.z = val["pos"][2]
+        elif isinstance(self.ros_msg, JointState):
+            self.ros_msg.name = val["names"]
+            self.ros_msg.position = val["pos"]
+            self.ros_msg.velocity = val["vel"]
+            self.ros_msg.effort = val["effort"]
+        else:
+            raise Exception(f"cannot publish ros msg: {self.ros_msg}")
+        self.pub.publish(self.ros_msg)
+
+class DynamicContentRos2(QWidget):
+    def __init__(self, topic_name="robot/publish_bar"):
         super().__init__()
         # each tab has its own LCM and message object (you may want shared LCM; using per-tab as before)
-        self.lc = lcm.LCM()
-        self.lcm_msg = Float32MultiArray()
-
         self.msg_type = "Float32MultiArray"
 
         # layout
@@ -22,7 +87,7 @@ class DynamicContentLcm(QWidget):
         # top row: topic + type
         top = QHBoxLayout()
         top.addWidget(QLabel("Topic:"))
-        self.topic_edit = QLineEdit("robot/publish_bar")
+        self.topic_edit = QLineEdit(topic_name)
         top.addWidget(self.topic_edit)
 
         top.addWidget(QLabel("Message Type:"))
@@ -86,6 +151,7 @@ class DynamicContentLcm(QWidget):
         self.publish_timer = QTimer()
         self.publish_timer.timeout.connect(self.publish)
         self.publish_timer.setInterval(int(1000 / 10))  # default 10 Hz
+        self.ros_node = ROSPublisher(topic_name)
 
         # initialize UI
         self.show_freq_controls(False)
@@ -113,22 +179,18 @@ class DynamicContentLcm(QWidget):
         # create appropriate widget
         if t == "Float32MultiArray":
             self.type_widget = FloatArrayWidget(self.slider_changed)
-            self.lcm_msg = Float32MultiArray()
         elif t == "Twist":
             self.type_widget = TwistWidget(self.slider_changed)
-            self.lcm_msg = Twist()
         elif t == "Vec3":
             self.type_widget = Vec3Widget(self.slider_changed)
-            self.lcm_msg = Vector3()
         elif t == "Pose":
             self.type_widget = PoseWidget(self.slider_changed)
-            self.lcm_msg = Pose()
         elif t == "JointState":
             self.type_widget = JointStateWidget(self.slider_changed)
-            self.lcm_msg = JointState()
         else:
             self.type_widget = FloatArrayWidget(self.slider_changed)
-            self.lcm_msg = Float32MultiArray()
+        self.ros_node.update_msg_Type(t)
+
         # add to layout
         if self.type_widget:
             self.dynamic_area.addWidget(self.type_widget)
@@ -192,6 +254,7 @@ class DynamicContentLcm(QWidget):
     def publish(self):
         topic = self.topic_edit.text()
         t = self.msg_type
+        val_dict=dict()
         # Example behavior: print contents and publish Float32MultiArray via LCM
         if t == "Float32MultiArray" and isinstance(self.type_widget, FloatArrayWidget):
             values = [s.get_value() for s in self.type_widget.sliders]
@@ -199,53 +262,26 @@ class DynamicContentLcm(QWidget):
             print(f"[Publish] {t} -> {topic}")
             print("  Names:", names)
             print("  Values:", values)
-            self.lcm_msg.data = values
-            self.lcm_msg.size = len(values)
-            try:
-                self.lc.publish(topic, self.lcm_msg.encode())
-            except :
-                raise Exception(f"[msg type mismatch] {t} -> {topic}")
+            val_dict["data"] = values
+            val_dict["names"] = names
         elif t == "Vec3" and isinstance(self.type_widget, Vec3Widget):
             vals = [s.get_value() for s in self.type_widget.group.sliders]
             print(f"[Publish] Vec3 -> {topic} : {vals}")
-            if isinstance(self.lcm_msg, Vector3):
-                self.lcm_msg.x = vals[0]
-                self.lcm_msg.y = vals[1]
-                self.lcm_msg.z = vals[2]
-            else:
-                raise Exception(f"[msg type mismatch] {t} -> {topic}")
+            val_dict["vals"] = vals
         elif t == "Pose" and isinstance(self.type_widget, PoseWidget):
             pos = [s.get_value() for s in self.type_widget.position.sliders]
             ori = [s.get_value() for s in self.type_widget.orientation.sliders]
             print(f"[Publish] Pose -> {topic}")
             print("  Pos:", pos, "Ori:", ori)
-            if isinstance(self.lcm_msg, Pose):
-                self.lcm_msg.orientation.w = ori[0]
-                self.lcm_msg.orientation.x = ori[1]
-                self.lcm_msg.orientation.y = ori[2]
-                self.lcm_msg.orientation.z = ori[3]
-
-                self.lcm_msg.position.x = pos[0]
-                self.lcm_msg.position.y = pos[1]
-                self.lcm_msg.position.z = pos[2]
-            else:
-                raise Exception(f"[msg type mismatch] {t} -> {topic}")
-
+            val_dict["ori"] = ori
+            val_dict["pos"] = pos
         elif t == "Twist" and isinstance(self.type_widget, TwistWidget):
             lin = [s.get_value() for s in self.type_widget.linear.sliders]
             ang = [s.get_value() for s in self.type_widget.angular.sliders]
             print(f"[Publish] Twist -> {topic}")
             print("  Linear:", lin, "  Angular:", ang)
-            if isinstance(self.lcm_msg, Twist):
-                self.lcm_msg.linear.x = lin[0]
-                self.lcm_msg.linear.y = lin[1]
-                self.lcm_msg.linear.z = lin[2]
-                self.lcm_msg.angular.x = ang[0]
-                self.lcm_msg.angular.y = ang[1]
-                self.lcm_msg.angular.z = ang[2]
-            else:
-                raise Exception(f"[msg type mismatch] {t} -> {topic}")
-
+            val_dict["lin"] = lin
+            val_dict["ang"] = ang
         elif t == "JointState" and isinstance(self.type_widget, JointStateWidget):
             pos_vals = [s.get_value() for s in self.type_widget.position_sliders]
             vel_vals = [s.get_value() for s in self.type_widget.velocity_sliders]
@@ -256,14 +292,10 @@ class DynamicContentLcm(QWidget):
             print("  Position:", pos_vals)
             print("  Velocity:", vel_vals)
             print("  Effort:", eff_vals)
-            if isinstance(self.lcm_msg, JointState):
-                self.lcm_msg.position = pos_vals
-                self.lcm_msg.velocity = vel_vals
-                self.lcm_msg.effort = eff_vals
-                self.lcm_msg.name = names
-                self.lcm_msg.size = len(names)
-            else:
-                raise Exception(f"[msg type mismatch] {t} -> {topic}")
+            val_dict["names"] = names
+            val_dict["pos"] = pos_vals
+            val_dict["vel"] = vel_vals
+            val_dict["effort"] = eff_vals
         else:
             # generic scan for slideBar children
             values = []
@@ -286,11 +318,10 @@ class DynamicContentLcm(QWidget):
                         values.append(s.get_value())
             if values:
                 print(f"[Publish] {t} -> {topic} (generic):", values)
+            raise Exception(f"[Publish] {t} -> {topic} (generic):")
+        self.ros_node.update_topic(self.topic_edit.text())
+        self.ros_node.publish(val_dict)
 
-        try:
-            self.lc.publish(topic, self.lcm_msg.encode())
-        except:
-            raise Exception(f"[Failed publish] {t} -> {topic}")
     # ---------------- saving / loading per-tab state ----------------
     def save_state(self):
         """

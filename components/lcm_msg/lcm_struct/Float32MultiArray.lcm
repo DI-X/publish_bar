@@ -1,0 +1,8 @@
+package lcm_std;
+
+struct Float32MultiArray
+{
+    int16_t  size;
+    float   data[size];
+}
+

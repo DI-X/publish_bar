@@ -1,0 +1,10 @@
+package lcm_std;
+
+struct Orientation
+{
+    float x;
+    float y;
+    float z;
+    float w;
+}
+

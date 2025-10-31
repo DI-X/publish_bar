@@ -1,0 +1,8 @@
+package lcm_std;
+
+struct Pose
+{
+    Vector3 position;
+    Orientation orientation;
+}
+

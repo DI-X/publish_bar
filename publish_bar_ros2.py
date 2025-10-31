@@ -11,6 +11,8 @@ import json, sys
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
+from geometry_msgs.msg import Pose, Twist, Vector3
+from sensor_msgs.msg import JointState
 
 class slideBar(QWidget):
     def __init__(self, name="Gain", min_val=0.0, max_val=100.0, value=50.0, callback=None):

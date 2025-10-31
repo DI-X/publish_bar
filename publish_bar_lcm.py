@@ -1,45 +1,12 @@
 import sys
-import json
-from PySide6.QtWidgets import (
-    QApplication, QHBoxLayout, QPushButton,
-    QFileDialog, QTabWidget, QInputDialog
-)
-from components.scripts.msgWidgets import *
+from PySide6.QtWidgets import QApplication
 from components.scripts.lcm.dynamicContentLcm import DynamicContentLcm
-import itertools
+from components.scripts.baseClass.publishBarBase import PublishBarBase
 
-class TabbedMain(QWidget):
+class PublishBarLcm(PublishBarBase):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Publish Bar Lcm")
-        self.resize(1000, 700)
-
-        layout = QVBoxLayout(self)
-
-        # control buttons
-        control_row = QHBoxLayout()
-        self.add_tab_btn = QPushButton("➕ Add Tab")
-        self.add_tab_btn.clicked.connect(self.add_tab)
-        self.save_btn = QPushButton("💾 Save All")
-        self.save_btn.clicked.connect(self.save_config)
-        self.load_btn = QPushButton("📂 Load All")
-        self.load_btn.clicked.connect(self.load_config)
-        control_row.addWidget(self.add_tab_btn)
-        control_row.addWidget(self.save_btn)
-        control_row.addWidget(self.load_btn)
-        control_row.addStretch()
-        layout.addLayout(control_row)
-
-        # tabs
-        self.tabs = QTabWidget()
-        self.tabs.setTabsClosable(True)
-        self.tabs.tabCloseRequested.connect(self.close_tab)
-        self.tabs.tabBarDoubleClicked.connect(self.rename_tab)
-        layout.addWidget(self.tabs)
-
-        self.topic_counter = itertools.count(1)
-        # start with one tab
-        self.add_tab()
 
     def add_tab(self, state: dict = None, title: str = None):
         topic_name = f"robot/publish_bar_{next(self.topic_counter)}"
@@ -49,68 +16,11 @@ class TabbedMain(QWidget):
         if state:
             tab.load_state(state)
 
-    def close_tab(self, index):
-        widget = self.tabs.widget(index)  # get the tab widget instance
-        if widget:
-            try:
-                # if your tab class has a destroy() method, call it
-                widget.destroy()
-            except Exception as e:
-                print(f"Error destroying tab: {e}")
-
-            # remove it from the QTabWidget
-            self.tabs.removeTab(index)
-
-            # let Qt clean up memory
-            widget.deleteLater()
-
-
-    def rename_tab(self, index):
-        if index < 0:
-            return
-        old = self.tabs.tabText(index)
-        new_name, ok = QInputDialog.getText(self, "Rename Tab", "Enter new name:", text=old)
-        if ok and new_name.strip():
-            self.tabs.setTabText(index, new_name)
-
-    # ---------------- Save / Load all tabs ----------------
-    def save_config(self):
-        filename, _ = QFileDialog.getSaveFileName(self, "Save All Tabs", "", "JSON Files (*.json)")
-        if not filename:
-            return
-        data = {"tabs": []}
-        for i in range(self.tabs.count()):
-            widget = self.tabs.widget(i)
-            tab_name = self.tabs.tabText(i)
-            try:
-                state = widget.save_state()
-            except Exception:
-                state = {}
-            data["tabs"].append({"name": tab_name, "state": state})
-        with open(filename, "w") as f:
-            json.dump(data, f, indent=4)
-        print(f"[Saved All Tabs] {filename}")
-
-    def load_config(self):
-        filename, _ = QFileDialog.getOpenFileName(self, "Load All Tabs", "", "JSON Files (*.json)")
-        if not filename:
-            return
-        with open(filename, "r") as f:
-            data = json.load(f)
-        # clear existing tabs
-        self.tabs.clear()
-        for t in data.get("tabs", []):
-            name = t.get("name", None)
-            state = t.get("state", {})
-            self.add_tab(state=state, title=name or None)
-        print(f"[Loaded All Tabs] {filename}")
-
-
 # -------------------------
 # Run
 # -------------------------
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    win = TabbedMain()
+    win = PublishBarLcm()
     win.show()
     sys.exit(app.exec())

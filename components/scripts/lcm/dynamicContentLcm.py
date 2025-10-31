@@ -1,12 +1,7 @@
 import lcm
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import (
-    QHBoxLayout, QLabel, QPushButton,
-    QLineEdit, QComboBox, QSlider,
-)
 from components.lcm_msg.lcm_std import Float32MultiArray, Twist, Pose, JointState, Vector3
 from components.scripts.msgWidgets import *
-from components.scripts.dynamicContentBase import DynamicContentBase
+from components.scripts.baseClass.dynamicContentBase import DynamicContentBase
 
 class DynamicContentLcm(DynamicContentBase):
     def __init__(self, topic_name="robot/publish_bar"):

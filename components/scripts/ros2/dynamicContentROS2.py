@@ -1,7 +1,7 @@
 
 from components.scripts.msgWidgets import *
 from components.scripts.ros2.ros2Helper import ROS2Publisher
-from components.scripts.dynamicContentBase import DynamicContentBase
+from components.scripts.baseClass.dynamicContentBase import DynamicContentBase
 
 class DynamicContentRos2(DynamicContentBase):
     def __init__(self, topic_name="robot/publish_bar", ros_node=None):

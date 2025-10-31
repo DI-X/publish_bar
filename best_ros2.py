@@ -5,7 +5,8 @@ from PySide6.QtWidgets import (
     QFileDialog, QTabWidget, QInputDialog
 )
 from components.scripts.msgWidgets import *
-from components.scripts.dynamicContentROS2 import DynamicContentRos2
+from components.scripts.ros2.dynamicContentROS2 import DynamicContentRos2
+from components.scripts.ros2.ros2Helper import ROSNode, ROS2Publisher
 import rclpy
 import itertools
 
@@ -38,13 +39,14 @@ class TabbedMain(QWidget):
         self.tabs.tabBarDoubleClicked.connect(self.rename_tab)
         layout.addWidget(self.tabs)
 
+        self.ros_node = ROSNode()
         self.topic_counter = itertools.count(1)
         # start with one tab
         self.add_tab()
 
     def add_tab(self, state: dict = None, title: str = None):
         topic_name = f"robot/publish_bar_{next(self.topic_counter)}"
-        tab = DynamicContentRos2(topic_name)
+        tab = DynamicContentRos2(topic_name, self.ros_node)
         idx = self.tabs.addTab(tab, title or f"Tab {self.tabs.count() + 1}")
         self.tabs.setCurrentIndex(idx)
         if state:

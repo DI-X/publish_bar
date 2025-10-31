@@ -1,5 +1,5 @@
 import lcm
-from components.lcm_msg.lcm_std import Float32MultiArray, Twist, Pose, JointState, Vector3
+from components.lcm_msg.lcm_std import Float32MultiArray, Twist, Pose, JointState, Vector3, String
 from components.scripts.msgWidgets import *
 from components.scripts.baseClass.dynamicContentBase import DynamicContentBase
 
@@ -50,6 +50,10 @@ class DynamicContentLcm(DynamicContentBase):
             self.type_widget = JointStateWidget(self.slider_changed)
             self.add_slider_button.setEnabled(True)
             self.lcm_msg = JointState()
+        elif t == "String":
+            self.type_widget = StringWidget()
+            self.add_slider_button.setEnabled(False)
+            self.lcm_msg = String()
         else:
             self.type_widget = FloatArrayWidget(self.slider_changed)
             self.add_slider_button.setEnabled(True)
@@ -131,6 +135,14 @@ class DynamicContentLcm(DynamicContentBase):
                 self.lcm_msg.effort = eff_vals
                 self.lcm_msg.name = names
                 self.lcm_msg.size = len(names)
+            else:
+                raise Exception(f"[msg type mismatch] {t} -> {topic}")
+        elif t == "String" and isinstance(self.type_widget, StringWidget):
+            str_msg = self.type_widget.get_text()
+            print(f"[Publish] String -> {topic}")
+            print(f"  Message: {str_msg}")
+            if isinstance(self.lcm_msg, String):
+                self.lcm_msg.data = str_msg
             else:
                 raise Exception(f"[msg type mismatch] {t} -> {topic}")
         else:

@@ -44,6 +44,9 @@ class DynamicContentRos1(DynamicContentBase):
         elif t == "JointState":
             self.type_widget = JointStateWidget(self.slider_changed)
             self.add_slider_button.setEnabled(True)
+        elif t == "String":
+            self.type_widget = StringWidget()
+            self.add_slider_button.setEnabled(False)
         else:
             self.type_widget = FloatArrayWidget(self.slider_changed)
             self.add_slider_button.setEnabled(True)
@@ -98,6 +101,11 @@ class DynamicContentRos1(DynamicContentBase):
             val_dict["pos"] = pos_vals
             val_dict["vel"] = vel_vals
             val_dict["effort"] = eff_vals
+        elif t == "String" and isinstance(self.type_widget, StringWidget):
+            str_msg = self.type_widget.get_text()
+            print(f"[Publish] String -> {topic}")
+            print(f"  Message: {str_msg}")
+            val_dict["data"] = str_msg
         else:
             # generic scan for slideBar children
             values = []

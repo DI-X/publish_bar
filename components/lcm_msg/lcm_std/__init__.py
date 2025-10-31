@@ -9,3 +9,4 @@ from .Orientation import Orientation as Orientation
 from .Pose import Pose as Pose
 from .Float32MultiArray import Float32MultiArray as Float32MultiArray
 from .JointState import JointState as JointState
+from .String import String as String

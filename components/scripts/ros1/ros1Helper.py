@@ -1,5 +1,5 @@
 
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float32MultiArray, String
 from geometry_msgs.msg import Pose, Twist, Vector3
 from sensor_msgs.msg import JointState
 import rospy
@@ -30,6 +30,9 @@ class ROS1Publisher():
             elif msg_type == "JointState":
                 self.ros_msg = JointState()
                 self.pub = rospy.Publisher(self.topic_name, JointState, queue_size=1)
+            elif msg_type == "String":
+                self.ros_msg = String()
+                self.pub = rospy.Publisher(self.topic_name, String, queue_size=1)
             else:
                 raise Exception(f"Unknown ROS message type: {msg_type}")
 
@@ -61,6 +64,8 @@ class ROS1Publisher():
             self.ros_msg.position = val["pos"]
             self.ros_msg.velocity = val["vel"]
             self.ros_msg.effort = val["effort"]
+        elif isinstance(self.ros_msg, String):
+            self.ros_msg.data = val["data"]
         else:
             raise Exception(f"cannot publish ros msg: {self.ros_msg}")
         self.pub.publish(self.ros_msg)

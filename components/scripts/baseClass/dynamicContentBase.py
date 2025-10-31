@@ -22,7 +22,7 @@ class DynamicContentBase(QWidget):
 
         top.addWidget(QLabel("Message Type:"))
         self.type_box = QComboBox()
-        self.type_box.addItems(["Float32MultiArray", "Twist", "Vec3", "Pose", "JointState"])
+        self.type_box.addItems(["Float32MultiArray", "Twist", "Vec3", "Pose", "JointState", "String"])
         self.type_box.currentTextChanged.connect(self._on_type_changed)
         top.addWidget(self.type_box)
         main.addLayout(top)
@@ -117,6 +117,9 @@ class DynamicContentBase(QWidget):
         elif t == "JointState":
             self.type_widget = JointStateWidget(self.slider_changed)
             self.add_slider_button.setEnabled(True)
+        elif t == "String":
+            self.type_widget = StringWidget()
+            self.add_slider_button.setEnabled(False)
         else:
             self.type_widget = FloatArrayWidget(self.slider_changed)
             self.add_slider_button.setEnabled(True)
@@ -214,6 +217,10 @@ class DynamicContentBase(QWidget):
             print("  Position:", pos_vals)
             print("  Velocity:", vel_vals)
             print("  Effort:", eff_vals)
+        elif t == "String" and isinstance(self.type_widget, StringWidget):
+            msg = self.type_widget.get_text()
+            print(f"[Publish] String -> {topic}")
+            print(f"  Message: {msg}")
         else:
             # generic scan for slideBar children
             values = []
@@ -305,6 +312,11 @@ class DynamicContentBase(QWidget):
                     "velocity": slider_to_dict(w.velocity_sliders[i]),
                     "effort": slider_to_dict(w.effort_sliders[i])
                 })
+        elif isinstance(w, StringWidget):
+            state["groups"].append({
+                "name": "String",
+                "text": w.get_text()
+            })
 
         return state
 
@@ -436,3 +448,7 @@ class DynamicContentBase(QWidget):
                     w.effort_sliders[idx].name_label.setText(new_name)
                 except Exception:
                     pass
+        elif isinstance(w, StringWidget):
+            for g in groups:
+                txt = g.get("text", "")
+                w.set_text(txt)

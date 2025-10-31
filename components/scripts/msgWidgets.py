@@ -1,6 +1,11 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from components.scripts.slideBar import slideBar
 from components.scripts.sliderGroup import SliderGroup
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout,
+    QLabel, QSizePolicy, QTextEdit
+)
 
 # -------------------------
 # Type-specific widgets
@@ -118,3 +123,37 @@ class JointStateWidget(QWidget):
         self.vel_group.clear()
         self.eff_group.clear()
 
+class StringWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        # Main vertical layout
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(6)
+
+        # Top row for label + text edit
+        row = QHBoxLayout()
+        row.setSpacing(8)
+
+        # Label on the top left
+        self.label = QLabel("Message:")
+        self.label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        row.addWidget(self.label)
+
+        # Multiline text edit that expands both ways
+        self.text_edit = QTextEdit()
+        self.text_edit.setPlaceholderText("Enter message text here...")
+        self.text_edit.setMinimumHeight(120)
+        self.text_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        row.addWidget(self.text_edit, stretch=1)
+
+        # Add row to the main layout
+        layout.addLayout(row)
+        layout.addStretch()
+
+    def get_text(self):
+        return self.text_edit.toPlainText()
+
+    def set_text(self, text):
+        self.text_edit.setPlainText(text)

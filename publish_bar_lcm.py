@@ -6,10 +6,9 @@ from PySide6.QtWidgets import (
     QSlider, QLabel, QPushButton, QLineEdit, QFileDialog
 )
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QSpacerItem, QSizePolicy
 import lcm
-from lcm_msg.lcm_std import FloatMultiArray
+from components.lcm_msg.lcm_std import FloatMultiArray
 import json, sys
 
 class slideBar(QWidget):

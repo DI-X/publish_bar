@@ -14,31 +14,30 @@ class ROS2Publisher():
         self.topic_name = topic_name
         self.pub = self.ros_node.create_publisher(Float32MultiArray, self.topic_name, 1)
         self.ros_msg = Float32MultiArray()
+        self.msg_type = "Float32MultiArray"
 
-    def update_topic(self, topic_name):
-        if self.topic_name != topic_name:
+    def update_publisher(self, topic_name, msg_type):
+        if self.topic_name != topic_name or self.msg_type != msg_type:
+            self.ros_node.destroy_publisher(self.pub)
             self.topic_name = topic_name
-            self.pub = self.ros_node.create_publisher(Float32MultiArray, self.topic_name, 1)
-
-    def update_msg_Type(self, msg_type):
-        self.ros_node.destroy_publisher(self.pub)
-        if msg_type == "Float32MultiArray":
-            self.ros_msg = Float32MultiArray()
-            self.pub = self.ros_node.create_publisher(Float32MultiArray, self.topic_name, 1)
-        elif msg_type == "Twist":
-            self.ros_msg = Twist()
-            self.pub = self.ros_node.create_publisher(Twist, self.topic_name, 1)
-        elif msg_type == "Vec3":
-            self.ros_msg = Vector3()
-            self.pub = self.ros_node.create_publisher(Vector3, self.topic_name, 1)
-        elif msg_type == "Pose":
-            self.ros_msg = Pose()
-            self.pub = self.ros_node.create_publisher(Pose, self.topic_name, 1)
-        elif msg_type == "JointState":
-            self.ros_msg = JointState()
-            self.pub = self.ros_node.create_publisher(JointState, self.topic_name, 1)
-        else:
-            raise Exception(f"Unknown ROS message type: {msg_type}")
+            self.msg_type = msg_type
+            if msg_type == "Float32MultiArray":
+                self.ros_msg = Float32MultiArray()
+                self.pub = self.ros_node.create_publisher(Float32MultiArray, self.topic_name, 1)
+            elif msg_type == "Twist":
+                self.ros_msg = Twist()
+                self.pub = self.ros_node.create_publisher(Twist, self.topic_name, 1)
+            elif msg_type == "Vec3":
+                self.ros_msg = Vector3()
+                self.pub = self.ros_node.create_publisher(Vector3, self.topic_name, 1)
+            elif msg_type == "Pose":
+                self.ros_msg = Pose()
+                self.pub = self.ros_node.create_publisher(Pose, self.topic_name, 1)
+            elif msg_type == "JointState":
+                self.ros_msg = JointState()
+                self.pub = self.ros_node.create_publisher(JointState, self.topic_name, 1)
+            else:
+                raise Exception(f"Unknown ROS message type: {msg_type}")
 
     def publish(self, val:dict):
         if isinstance(self.ros_msg, Float32MultiArray):

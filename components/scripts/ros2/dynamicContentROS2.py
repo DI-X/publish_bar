@@ -90,6 +90,7 @@ class DynamicContentRos2(QWidget):
 
     # ---------------- type switching ----------------
     def _on_type_changed(self, t):
+        topic = self.topic_edit.text()
         self.msg_type = t
         # remove previous type widget
         if self.type_widget:
@@ -120,7 +121,7 @@ class DynamicContentRos2(QWidget):
             self.type_widget = JointStateWidget(self.slider_changed)
         else:
             self.type_widget = FloatArrayWidget(self.slider_changed)
-        self.ros_node.update_msg_Type(t)
+        self.ros_node.update_publisher(topic, self.msg_type)
 
         # add to layout
         if self.type_widget:
@@ -250,7 +251,7 @@ class DynamicContentRos2(QWidget):
             if values:
                 print(f"[Publish] {t} -> {topic} (generic):", values)
             raise Exception(f"[Publish] {t} -> {topic} (generic):")
-        self.ros_node.update_topic(self.topic_edit.text())
+        self.ros_node.update_publisher(self.topic_edit.text(), self.msg_type)
         self.ros_node.publish(val_dict)
 
     # ---------------- saving / loading per-tab state ----------------

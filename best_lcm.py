@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
 )
 from components.scripts.msgWidgets import *
 from components.scripts.DynamicContentLcm import DynamicContentLcm
+import itertools
 
 class TabbedMain(QWidget):
     def __init__(self):
@@ -36,11 +37,13 @@ class TabbedMain(QWidget):
         self.tabs.tabBarDoubleClicked.connect(self.rename_tab)
         layout.addWidget(self.tabs)
 
+        self.topic_counter = itertools.count(1)
         # start with one tab
         self.add_tab()
 
     def add_tab(self, state: dict = None, title: str = None):
-        tab = DynamicContentLcm()
+        topic_name = f"robot/publish_bar_{next(self.topic_counter)}"
+        tab = DynamicContentLcm(topic_name)
         idx = self.tabs.addTab(tab, title or f"Tab {self.tabs.count() + 1}")
         self.tabs.setCurrentIndex(idx)
         if state:

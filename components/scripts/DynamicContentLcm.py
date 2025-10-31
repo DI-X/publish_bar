@@ -8,7 +8,7 @@ from components.lcm_msg.lcm_std import Float32MultiArray, Twist, Pose, JointStat
 from components.scripts.msgWidgets import *
 
 class DynamicContentLcm(QWidget):
-    def __init__(self):
+    def __init__(self, topic_name="robot/publish_bar"):
         super().__init__()
         # each tab has its own LCM and message object (you may want shared LCM; using per-tab as before)
         self.lc = lcm.LCM()
@@ -22,7 +22,7 @@ class DynamicContentLcm(QWidget):
         # top row: topic + type
         top = QHBoxLayout()
         top.addWidget(QLabel("Topic:"))
-        self.topic_edit = QLineEdit("robot/publish_bar")
+        self.topic_edit = QLineEdit(topic_name)
         top.addWidget(self.topic_edit)
 
         top.addWidget(QLabel("Message Type:"))

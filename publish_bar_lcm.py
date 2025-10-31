@@ -50,7 +50,20 @@ class TabbedMain(QWidget):
             tab.load_state(state)
 
     def close_tab(self, index):
-        self.tabs.removeTab(index)
+        widget = self.tabs.widget(index)  # get the tab widget instance
+        if widget:
+            try:
+                # if your tab class has a destroy() method, call it
+                widget.destroy()
+            except Exception as e:
+                print(f"Error destroying tab: {e}")
+
+            # remove it from the QTabWidget
+            self.tabs.removeTab(index)
+
+            # let Qt clean up memory
+            widget.deleteLater()
+
 
     def rename_tab(self, index):
         if index < 0:

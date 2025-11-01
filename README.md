@@ -1,6 +1,6 @@
 # Publish Bar
 
-![Demo animation](publish_bar_UI.gif)
+![Demo animation](publish_bar_image.gif)
 - Publish Bar is a lightweight GUI tool for dynamically publishing numeric values through sliders.
 Inspired by [rqt_ez_publisher](https://github.com/OTL/rqt_ez_publisher),, it provides an intuitive interface for tuning parameters in ROS1, ROS2, or LCM .
 

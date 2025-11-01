@@ -1,3 +1,4 @@
+import math
 from PySide6.QtWidgets import QVBoxLayout,  QGroupBox, QHBoxLayout, QLabel, QComboBox
 from components.scripts.slideBar import slideBar
 
@@ -91,7 +92,6 @@ class SliderGroup(QGroupBox):
         """Return list of current slider values with unit conversion if needed."""
         values = [s.get_value() for s in self.sliders]
         if self.unit_box and self.unit_box.currentText() == "Deg → Rad":
-            import math
             values = [math.radians(v) for v in values]
         return values
 

@@ -42,7 +42,7 @@ class ROS2Publisher():
             else:
                 raise Exception(f"Unknown ROS message type: {msg_type}")
 
-    def publish(self, val:dict):
+    def publish(self, val: dict):
         if isinstance(self.ros_msg, Float32MultiArray):
             self.ros_msg.data = val["data"]
         elif isinstance(self.ros_msg, Twist):

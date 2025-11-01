@@ -143,7 +143,8 @@ class slideBar(QWidget):
 # SliderGroup (dynamic adding)
 # -------------------------
 class SliderGroup(QGroupBox):
-    def __init__(self, title, labels=None, slider_callback=None, name_changed_callback=None):
+    def __init__(self, title, labels=None, slider_callback=None,
+                 name_changed_callback=None, unit_selectable=False):
         super().__init__(title)
         self.setCheckable(True)
         self.setChecked(True)
@@ -151,9 +152,25 @@ class SliderGroup(QGroupBox):
         self.name_changed_callback = name_changed_callback
         self.container = QVBoxLayout()
         self.sliders = []
+        self.unit_selectable = unit_selectable
+
+        # --- Unit dropdown row ---
+        if unit_selectable:
+            unit_row = QHBoxLayout()
+            unit_row.addWidget(QLabel("Outputs:"))
+            self.unit_box = QComboBox()
+            self.unit_box.addItems(["Raw values", "Deg → Rad"])
+            self.unit_box.currentTextChanged.connect(self._on_unit_changed)
+            unit_row.addWidget(self.unit_box)
+            unit_row.addStretch()
+            self.container.addLayout(unit_row)
+        else:
+            self.unit_box = None
+
         if labels:
             for lbl in labels:
                 self.add_slider(lbl)
+
         self.setLayout(self.container)
         self.toggled.connect(self._on_toggled)
 
@@ -163,13 +180,61 @@ class SliderGroup(QGroupBox):
 
         self.setVisible(checked)
 
-    def add_slider(self, name="Value", min_val=-10.0, max_val=10.0, value=0.0, name_changed_callback=None):
-        # name_changed_callback overrides group default if provided
+        # -------- Unit Handling --------
+
+    def _on_unit_changed(self, mode):
+        """If switching to Deg→Rad, immediately enforce limits."""
+        self._clamp_slider_ranges()
+
+    def _clamp_slider_ranges(self):
+        """Clamp all sliders to [-360, 360] if mode is Deg→Rad."""
+        if not (self.unit_box and self.unit_box.currentText() == "Deg → Rad"):
+            return
+        for s in self.sliders:
+            try:
+                min_v = float(s.min_edit.text())
+                max_v = float(s.max_edit.text())
+
+                # enforce bounds
+                min_v = max(min_v, -360)
+                max_v = min(max_v, 360)
+                if min_v >= max_v:
+                    min_v, max_v = -360, 360
+
+                # correct the text if changed
+                if float(s.min_edit.text()) != min_v:
+                    s.min_edit.setText(str(min_v))
+                if float(s.max_edit.text()) != max_v:
+                    s.max_edit.setText(str(max_v))
+
+                s.set_range(min_v, max_v)
+            except Exception:
+                pass
+
+    def add_slider(self, name="Value", min_val=-10.0, max_val=10.0,
+                   value=0.0, name_changed_callback=None):
         callback = name_changed_callback if name_changed_callback is not None else self.name_changed_callback
-        s = slideBar(name, min_val, max_val, value, callback=self.slider_callback, name_changed_callback=callback)
+        s = slideBar(name, min_val, max_val, value,
+                     callback=self.slider_callback,
+                     name_changed_callback=callback)
         self.container.addWidget(s)
         self.sliders.append(s)
+
+        # Connect min/max edits to enforce degree clamp when necessary
+        if self.unit_box:
+            s.min_edit.editingFinished.connect(self._clamp_slider_ranges)
+            s.max_edit.editingFinished.connect(self._clamp_slider_ranges)
+
         return s
+
+    # -------- Data Extraction --------
+    def get_slider_values(self):
+        """Return list of current slider values with unit conversion if needed."""
+        values = [s.get_value() for s in self.sliders]
+        if self.unit_box and self.unit_box.currentText() == "Deg → Rad":
+            import math
+            values = [math.radians(v) for v in values]
+        return values
 
     def clear(self):
         for s in self.sliders:
@@ -187,7 +252,7 @@ class Vec3Widget(QWidget):
     def __init__(self, slider_callback):
         super().__init__()
         layout = QVBoxLayout(self)
-        self.group = SliderGroup("Vec3", ["x", "y", "z"], slider_callback)
+        self.group = SliderGroup("Vec3", ["x", "y", "z"], slider_callback, unit_selectable=True)
         layout.addWidget(self.group)
 
 
@@ -196,7 +261,9 @@ class PoseWidget(QWidget):
         super().__init__()
         layout = QVBoxLayout(self)
         self.position = SliderGroup("Position", ["x", "y", "z"], slider_callback)
-        self.orientation = SliderGroup("Orientation", ["w", "x", "y", "z"], slider_callback)
+        self.orientation = SliderGroup("Orientation", ["w", "x", "y", "z"], slider_callback, unit_selectable=True)
+        layout.addWidget(self.position)
+        layout.addWidget(self.orientation)
         layout.addWidget(self.position)
         layout.addWidget(self.orientation)
 
@@ -206,7 +273,7 @@ class TwistWidget(QWidget):
         super().__init__()
         layout = QVBoxLayout(self)
         self.linear = SliderGroup("Linear", ["x", "y", "z"], slider_callback)
-        self.angular = SliderGroup("Angular", ["x", "y", "z"], slider_callback)
+        self.angular = SliderGroup("Angular", ["x", "y", "z"], slider_callback, unit_selectable=True)
         layout.addWidget(self.linear)
         layout.addWidget(self.angular)
 
@@ -272,19 +339,24 @@ class JointStateWidget(QWidget):
         super().__init__()
         layout = QVBoxLayout(self)
 
-        # use SliderGroup internally but with no initial labels
-        self.pos_group = SliderGroup("Position", labels=None, slider_callback=slider_callback,
-                                     name_changed_callback=self._on_name_changed)
-        self.vel_group = SliderGroup("Velocity", labels=None, slider_callback=slider_callback,
-                                     name_changed_callback=self._on_name_changed)
-        self.eff_group = SliderGroup("Effort", labels=None, slider_callback=slider_callback,
-                                     name_changed_callback=self._on_name_changed)
+        # position/velocity use unit selection, effort stays raw
+        self.pos_group = SliderGroup("Position", labels=None,
+                                     slider_callback=slider_callback,
+                                     name_changed_callback=self._on_name_changed,
+                                     unit_selectable=True)
+        self.vel_group = SliderGroup("Velocity", labels=None,
+                                     slider_callback=slider_callback,
+                                     name_changed_callback=self._on_name_changed,
+                                     unit_selectable=True)
+        self.eff_group = SliderGroup("Effort", labels=None,
+                                     slider_callback=slider_callback,
+                                     name_changed_callback=self._on_name_changed,
+                                     unit_selectable=False)
 
         layout.addWidget(self.pos_group)
         layout.addWidget(self.vel_group)
         layout.addWidget(self.eff_group)
 
-        # aligned lists
         self.position_sliders = []
         self.velocity_sliders = []
         self.effort_sliders = []
@@ -530,25 +602,25 @@ class DynamicContent(QWidget):
             except Exception:
                 pass
         elif t == "Vec3" and isinstance(self.type_widget, Vec3Widget):
-            vals = [s.get_value() for s in self.type_widget.group.sliders]
+            vals = self.type_widget.group.get_slider_values()
             print(f"[Publish] Vec3 -> {topic} : {vals}")
         elif t == "Pose" and isinstance(self.type_widget, PoseWidget):
-            pos = [s.get_value() for s in self.type_widget.position.sliders]
-            ori = [s.get_value() for s in self.type_widget.orientation.sliders]
+            pos = self.type_widget.position.get_slider_values()
+            ori = self.type_widget.orientation.get_slider_values()
             print(f"[Publish] Pose -> {topic}")
             print("  Pos:", pos, "Ori:", ori)
         elif t == "Twist" and isinstance(self.type_widget, TwistWidget):
-            lin = [s.get_value() for s in self.type_widget.linear.sliders]
-            ang = [s.get_value() for s in self.type_widget.angular.sliders]
+            lin = self.type_widget.linear.get_slider_values()
+            ang = self.type_widget.angular.get_slider_values()
             print(f"[Publish] Twist -> {topic}")
             print("  Linear:", lin, "  Angular:", ang)
         elif t == "String" and isinstance(self.type_widget, StringWidget):
             msg = self.type_widget.get_text()
             print(f"[Publish] String -> {topic}: {msg}")
         elif t == "JointState" and isinstance(self.type_widget, JointStateWidget):
-            pos_vals = [s.get_value() for s in self.type_widget.position_sliders]
-            vel_vals = [s.get_value() for s in self.type_widget.velocity_sliders]
-            eff_vals = [s.get_value() for s in self.type_widget.effort_sliders]
+            pos_vals = self.type_widget.pos_group.get_slider_values()
+            vel_vals = self.type_widget.vel_group.get_slider_values()
+            eff_vals = self.type_widget.eff_group.get_slider_values()
             names = [s.name_label.text() for s in self.type_widget.position_sliders]
             print(f"[Publish] JointState -> {topic}")
             print("  Names:", names)

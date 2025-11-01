@@ -81,7 +81,7 @@ class DynamicContentBase(QWidget):
         # initialize UI
         self.show_freq_controls(False)
         self._on_type_changed(self.type_box.currentText())
-
+        self.on_mode_changed(self.mode_box.currentText())
     # ---------------- type switching ----------------
     def _on_type_changed(self, t):
         self.msg_type = t

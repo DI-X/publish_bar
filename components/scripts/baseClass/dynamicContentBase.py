@@ -22,7 +22,7 @@ class DynamicContentBase(QWidget):
 
         top.addWidget(QLabel("Message Type:"))
         self.type_box = QComboBox()
-        self.type_box.addItems(["Float32MultiArray", "Twist", "Vec3", "Pose", "JointState"])
+        self.type_box.addItems(["Float32MultiArray", "Twist", "Vec3", "Pose", "JointState", "String"])
         self.type_box.currentTextChanged.connect(self._on_type_changed)
         top.addWidget(self.type_box)
         main.addLayout(top)
@@ -75,13 +75,13 @@ class DynamicContentBase(QWidget):
 
         # timer per-tab for Continuous mode
         self.publish_timer = QTimer()
-        self.publish_timer.timeout.connect(self.publish)
+        self.publish_timer.timeout.connect(self.send_msg)
         self.publish_timer.setInterval(int(1000 / 10))  # default 10 Hz
 
         # initialize UI
         self.show_freq_controls(False)
         self._on_type_changed(self.type_box.currentText())
-
+        self.on_mode_changed(self.mode_box.currentText())
     # ---------------- type switching ----------------
     def _on_type_changed(self, t):
         self.msg_type = t
@@ -117,6 +117,9 @@ class DynamicContentBase(QWidget):
         elif t == "JointState":
             self.type_widget = JointStateWidget(self.slider_changed)
             self.add_slider_button.setEnabled(True)
+        elif t == "String":
+            self.type_widget = StringWidget()
+            self.add_slider_button.setEnabled(False)
         else:
             self.type_widget = FloatArrayWidget(self.slider_changed)
             self.add_slider_button.setEnabled(True)
@@ -124,6 +127,8 @@ class DynamicContentBase(QWidget):
         if self.type_widget:
             self.dynamic_area.addWidget(self.type_widget)
 
+        topic = self.topic_edit.text()
+        self.update_publisher(topic, self.msg_type)
     # ---------------- mode / freq handling ----------------
     def on_mode_changed(self, mode):
         if mode == "Continuous":
@@ -173,16 +178,24 @@ class DynamicContentBase(QWidget):
 
     def slider_changed(self):
         if self.mode_box.currentText() == "As Updates":
-            self.publish()
+            self.send_msg()
 
     # ---------------- publish logic (example prints + LCM publish for FloatArray) ----------------
     def manual_publish(self):
         if self.mode_box.currentText() == "Once":
-            self.publish()
+            self.send_msg()
 
-    def publish(self):
+    def update_publisher(self, topic:str, msg_type:str):
+        pass
+
+    def publish(self, topic:str, val: dict):
+        pass
+
+    def send_msg(self):
         topic = self.topic_edit.text()
         t = self.msg_type
+        val_dict = dict()
+        # Example behavior: print contents and publish Float32MultiArray via LCM
         # Example behavior: print contents and publish Float32MultiArray via LCM
         if t == "Float32MultiArray" and isinstance(self.type_widget, FloatArrayWidget):
             values = [s.get_value() for s in self.type_widget.sliders]
@@ -190,30 +203,45 @@ class DynamicContentBase(QWidget):
             print(f"[Publish] {t} -> {topic}")
             print("  Names:", names)
             print("  Values:", values)
+            val_dict["data"] = values
+            val_dict["names"] = names
         elif t == "Vec3" and isinstance(self.type_widget, Vec3Widget):
-            vals = [s.get_value() for s in self.type_widget.group.sliders]
+            vals = self.type_widget.group.get_slider_values()
             print(f"[Publish] Vec3 -> {topic} : {vals}")
+            val_dict["vals"] = vals
         elif t == "Pose" and isinstance(self.type_widget, PoseWidget):
-            pos = [s.get_value() for s in self.type_widget.position.sliders]
-            ori = [s.get_value() for s in self.type_widget.orientation.sliders]
+            pos = self.type_widget.position.get_slider_values()
+            ori = self.type_widget.orientation.get_slider_values()
             print(f"[Publish] Pose -> {topic}")
             print("  Pos:", pos, "Ori:", ori)
-
+            val_dict["ori"] = ori
+            val_dict["pos"] = pos
         elif t == "Twist" and isinstance(self.type_widget, TwistWidget):
-            lin = [s.get_value() for s in self.type_widget.linear.sliders]
-            ang = [s.get_value() for s in self.type_widget.angular.sliders]
+            lin = self.type_widget.linear.get_slider_values()
+            ang = self.type_widget.angular.get_slider_values()
             print(f"[Publish] Twist -> {topic}")
             print("  Linear:", lin, "  Angular:", ang)
+            val_dict["lin"] = lin
+            val_dict["ang"] = ang
         elif t == "JointState" and isinstance(self.type_widget, JointStateWidget):
-            pos_vals = [s.get_value() for s in self.type_widget.position_sliders]
-            vel_vals = [s.get_value() for s in self.type_widget.velocity_sliders]
-            eff_vals = [s.get_value() for s in self.type_widget.effort_sliders]
+            pos_vals = self.type_widget.pos_group.get_slider_values()
+            vel_vals = self.type_widget.vel_group.get_slider_values()
+            eff_vals = self.type_widget.eff_group.get_slider_values()
             names = [s.name_label.text() for s in self.type_widget.position_sliders]
             print(f"[Publish] JointState -> {topic}")
             print("  Names:", names)
             print("  Position:", pos_vals)
             print("  Velocity:", vel_vals)
             print("  Effort:", eff_vals)
+            val_dict["names"] = names
+            val_dict["pos"] = pos_vals
+            val_dict["vel"] = vel_vals
+            val_dict["effort"] = eff_vals
+        elif t == "String" and isinstance(self.type_widget, StringWidget):
+            str_msg = self.type_widget.get_text()
+            print(f"[Publish] String -> {topic}")
+            print(f"  Message: {str_msg}")
+            val_dict["data"] = str_msg
         else:
             # generic scan for slideBar children
             values = []
@@ -236,7 +264,9 @@ class DynamicContentBase(QWidget):
                         values.append(s.get_value())
             if values:
                 print(f"[Publish] {t} -> {topic} (generic):", values)
-
+            raise Exception(f"[Publish] {t} -> {topic} (generic):")
+        self.update_publisher(topic, self.msg_type)
+        self.publish(topic, val_dict)
     # ---------------- saving / loading per-tab state ----------------
     def save_state(self):
         """
@@ -305,6 +335,11 @@ class DynamicContentBase(QWidget):
                     "velocity": slider_to_dict(w.velocity_sliders[i]),
                     "effort": slider_to_dict(w.effort_sliders[i])
                 })
+        elif isinstance(w, StringWidget):
+            state["groups"].append({
+                "name": "String",
+                "text": w.get_text()
+            })
 
         return state
 
@@ -436,3 +471,7 @@ class DynamicContentBase(QWidget):
                     w.effort_sliders[idx].name_label.setText(new_name)
                 except Exception:
                     pass
+        elif isinstance(w, StringWidget):
+            for g in groups:
+                txt = g.get("text", "")
+                w.set_text(txt)

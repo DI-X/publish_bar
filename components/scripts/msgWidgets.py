@@ -1,6 +1,11 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from components.scripts.slideBar import slideBar
 from components.scripts.sliderGroup import SliderGroup
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout,
+    QLabel, QSizePolicy, QTextEdit
+)
 
 # -------------------------
 # Type-specific widgets
@@ -9,7 +14,7 @@ class Vec3Widget(QWidget):
     def __init__(self, slider_callback):
         super().__init__()
         layout = QVBoxLayout(self)
-        self.group = SliderGroup("Vec3", ["x", "y", "z"], slider_callback)
+        self.group = SliderGroup("Vec3", ["x", "y", "z"], slider_callback, unit_selectable=True)
         layout.addWidget(self.group)
 
 
@@ -18,7 +23,9 @@ class PoseWidget(QWidget):
         super().__init__()
         layout = QVBoxLayout(self)
         self.position = SliderGroup("Position", ["x", "y", "z"], slider_callback)
-        self.orientation = SliderGroup("Orientation", ["w", "x", "y", "z"], slider_callback)
+        self.orientation = SliderGroup("Orientation", ["w", "x", "y", "z"], slider_callback, unit_selectable=True)
+        layout.addWidget(self.position)
+        layout.addWidget(self.orientation)
         layout.addWidget(self.position)
         layout.addWidget(self.orientation)
 
@@ -28,7 +35,7 @@ class TwistWidget(QWidget):
         super().__init__()
         layout = QVBoxLayout(self)
         self.linear = SliderGroup("Linear", ["x", "y", "z"], slider_callback)
-        self.angular = SliderGroup("Angular", ["x", "y", "z"], slider_callback)
+        self.angular = SliderGroup("Angular", ["x", "y", "z"], slider_callback, unit_selectable=True)
         layout.addWidget(self.linear)
         layout.addWidget(self.angular)
 
@@ -54,25 +61,64 @@ class FloatArrayWidget(QWidget):
                 pass
         self.sliders.clear()
 
+class StringWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        # Main vertical layout
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(6)
+
+        # Top row for label + text edit
+        row = QHBoxLayout()
+        row.setSpacing(8)
+
+        # Label on the top left
+        self.label = QLabel("Message:")
+        self.label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        row.addWidget(self.label)
+
+        # Multiline text edit that expands both ways
+        self.text_edit = QTextEdit()
+        self.text_edit.setPlaceholderText("Enter message text here...")
+        self.text_edit.setMinimumHeight(120)
+        self.text_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        row.addWidget(self.text_edit, stretch=1)
+
+        # Add row to the main layout
+        layout.addLayout(row)
+        layout.addStretch()
+
+    def get_text(self):
+        return self.text_edit.toPlainText()
+
+    def set_text(self, text):
+        self.text_edit.setPlainText(text)
 
 class JointStateWidget(QWidget):
     def __init__(self, slider_callback):
         super().__init__()
         layout = QVBoxLayout(self)
 
-        # use SliderGroup internally but with no initial labels
-        self.pos_group = SliderGroup("Position", labels=None, slider_callback=slider_callback,
-                                     name_changed_callback=self._on_name_changed)
-        self.vel_group = SliderGroup("Velocity", labels=None, slider_callback=slider_callback,
-                                     name_changed_callback=self._on_name_changed)
-        self.eff_group = SliderGroup("Effort", labels=None, slider_callback=slider_callback,
-                                     name_changed_callback=self._on_name_changed)
+        # position/velocity use unit selection, effort stays raw
+        self.pos_group = SliderGroup("Position", labels=None,
+                                     slider_callback=slider_callback,
+                                     name_changed_callback=self._on_name_changed,
+                                     unit_selectable=True)
+        self.vel_group = SliderGroup("Velocity", labels=None,
+                                     slider_callback=slider_callback,
+                                     name_changed_callback=self._on_name_changed,
+                                     unit_selectable=True)
+        self.eff_group = SliderGroup("Effort", labels=None,
+                                     slider_callback=slider_callback,
+                                     name_changed_callback=self._on_name_changed,
+                                     unit_selectable=False)
 
         layout.addWidget(self.pos_group)
         layout.addWidget(self.vel_group)
         layout.addWidget(self.eff_group)
 
-        # aligned lists
         self.position_sliders = []
         self.velocity_sliders = []
         self.effort_sliders = []
@@ -117,4 +163,3 @@ class JointStateWidget(QWidget):
         self.pos_group.clear()
         self.vel_group.clear()
         self.eff_group.clear()
-

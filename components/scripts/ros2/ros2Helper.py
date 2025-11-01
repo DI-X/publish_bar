@@ -1,5 +1,5 @@
 
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float32MultiArray, String
 from geometry_msgs.msg import Pose, Twist, Vector3
 from sensor_msgs.msg import JointState
 from rclpy.node import Node
@@ -36,10 +36,13 @@ class ROS2Publisher():
             elif msg_type == "JointState":
                 self.ros_msg = JointState()
                 self.pub = self.ros_node.create_publisher(JointState, self.topic_name, 1)
+            elif msg_type == "String":
+                self.ros_msg = String()
+                self.pub = self.ros_node.create_publisher(String, self.topic_name, 1)
             else:
                 raise Exception(f"Unknown ROS message type: {msg_type}")
 
-    def publish(self, val:dict):
+    def publish(self, val: dict):
         if isinstance(self.ros_msg, Float32MultiArray):
             self.ros_msg.data = val["data"]
         elif isinstance(self.ros_msg, Twist):
@@ -67,6 +70,8 @@ class ROS2Publisher():
             self.ros_msg.position = val["pos"]
             self.ros_msg.velocity = val["vel"]
             self.ros_msg.effort = val["effort"]
+        elif isinstance(self.ros_msg, String):
+            self.ros_msg.data = val["data"]
         else:
             raise Exception(f"cannot publish ros msg: {self.ros_msg}")
         self.pub.publish(self.ros_msg)

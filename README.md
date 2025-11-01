@@ -8,9 +8,10 @@ Inspired by [rqt_ez_publisher](https://github.com/OTL/rqt_ez_publisher),, it pro
 - Dynamically change the topic name directly from the interface
 - Adjustable minimum and maximum slider values
 - Publish multiple messages simultaneously
+- Switch outputs between raw values and degree-to-radian conversion
 - Save and load full configurations (topic name, slider names, ranges, and values)
 - Out of the box, It works in ROS1, ROS2, and LCM,
-- Supported message types: String, Float32MultiArray, Vector3, Twist, Pose, JointState
+- Supported message types: `String`, `Float32MultiArray`, `Vector3`, `Twist`, `Pose`, `JointState`
 
 ### Files Overview
 
@@ -35,6 +36,9 @@ For example, to use ROS2:
 ```text
 python3 publish_bar_ros2.py
 ```
+### Output Modes (available only for angular data)
+- Raw values: Outputs the exact values shown on the sliders, without any conversion.
+- Deg → Rad: Interprets slider values as degrees and outputs the corresponding values converted to radians.
 
 ### Save Config
 - Click Save Config bottun at the left bottom corner and save files as json file (`.json`)
@@ -43,10 +47,4 @@ python3 publish_bar_ros2.py
 - Click Load Config Button and select a config file you saved
 
 ## Developers Guide
-- If you want to modify the message type or extend support to a new middleware (e.g., WebSocket, ZeroMQ, etc.),
-start with`publish_bar_lcm.py` t’s the simplest reference implementation. `class publishBar(QWidget)/def publish(self)` shows how Publish Bar publishes a message using middleware, Lcm.
-
-## ToDo
-- add features to convert output from degree to radian 
-
-
+- If you want to extend support to a new middleware (e.g., WebSocket, ZeroMQ, etc.), start with `publish_bar_lcm.py` and `components/scripts/lcm/dynamicContentLcm.py` It’s the simplest reference implementation.

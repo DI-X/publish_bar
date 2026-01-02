@@ -60,6 +60,7 @@ class ROS1Publisher():
             self.ros_msg.position.y = val["pos"][1]
             self.ros_msg.position.z = val["pos"][2]
         elif isinstance(self.ros_msg, JointState):
+            self.ros_msg.header.stamp = rospy.Time.now()
             self.ros_msg.name = val["names"]
             self.ros_msg.position = val["pos"]
             self.ros_msg.velocity = val["vel"]
